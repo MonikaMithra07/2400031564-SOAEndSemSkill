@@ -1,0 +1,96 @@
+networks:
+  microservice-net:
+    driver: bridge
+
+services:
+  postgres-db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: myDB
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    networks:
+      - microservice-net
+
+  eureka-server:
+    build:
+      context: ./MS-EUREKA-SERVER
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - microservice-net
+
+  ms1.1:
+    build:
+      context: ./MS1.1
+    container_name: ms1.1
+    ports:
+      - "8001:8001"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/myDB
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+    networks:
+      - microservice-net
+    depends_on:
+      - eureka-server
+      - postgres-db
+
+  ms2.1:
+    build:
+      context: ./MS2.1
+    container_name: ms2.1
+    ports:
+      - "8002:8002"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/myDB
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+    networks:
+      - microservice-net
+    depends_on:
+      - eureka-server
+      - postgres-db
+
+  ms2.2:
+    build:
+      context: ./MS2.2
+    container_name: ms2.2
+    ports:
+      - "8003:8003"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/myDB
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+    networks:
+      - microservice-net
+    depends_on:
+      - eureka-server
+      - postgres-db
+
+  api-gateway:
+    build:
+      context: ./MS-API-GATEWAY
+    container_name: api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+    networks:
+      - microservice-net
+    depends_on:
+      - eureka-server
+      - ms1.1
+      - ms2.1
+      - ms2.2
